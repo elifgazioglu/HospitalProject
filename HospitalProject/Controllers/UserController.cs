@@ -33,7 +33,7 @@ namespace HospitalProject.Controllers
 
             var validationResult = validation.Validate(id);
 
-            if (validationResult != null)
+            if (validationResult == null)
             {
                 return BadRequest(validationResult);
             }
