@@ -54,12 +54,12 @@ namespace HospitalProject.Controllers
         public ActionResult<User> CreateUser(UserRequestModel user)
         {
 
-            var userEntityRequest =_mapper.Map<User>(user);
+            var userEntityRequest = _mapper.Map<User>(user);
 
-            _context.Users.Add(userEntityRequest); 
-            _context.SaveChanges(); 
+            _context.Users.Add(userEntityRequest);
+            _context.SaveChanges();
 
-            
+
             return CreatedAtAction(nameof(GetUser), new { id = userEntityRequest.Id }, user);
         }
         [HttpDelete("{id}")]
