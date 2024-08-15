@@ -3,6 +3,7 @@ using AutoMapper;
 using HospitalProject.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -61,8 +62,30 @@ namespace HospitalProject.Controllers
             
             return CreatedAtAction(nameof(GetUser), new { id = userEntityRequest.Id }, user);
         }
-    }
+        [HttpDelete("{id}")]
+        public ActionResult<User> DeleteUser(int id)
+        {
+            var validation = new IntValidator();
 
+            var validationResult = validation.Validate(id);
+
+            if (validationResult == null)
+            {
+                return BadRequest(validationResult);
+            }
+
+            var user = _context.Users.Find(id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+            _context.Users.Remove(user);
+            _context.SaveChanges();
+            return NoContent();
+        }
+    }
+    
     public class UserRequestModel
     {
         public string Email { get; set; } = null!;
