@@ -45,6 +45,23 @@ namespace HospitalProject.Migrations
                     b.ToTable("Appointments");
                 });
 
+            modelBuilder.Entity("HospitalProject.Models.Department", b =>
+                {
+                    b.Property<int>("DepartmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DepartmentId"));
+
+                    b.Property<string>("DepartmentName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("DepartmentId");
+
+                    b.ToTable("Department");
+                });
+
             modelBuilder.Entity("HospitalProject.Models.Doctor", b =>
                 {
                     b.Property<int>("Id")
@@ -52,6 +69,9 @@ namespace HospitalProject.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("Salary")
                         .HasColumnType("int");
@@ -63,6 +83,8 @@ namespace HospitalProject.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
 
                     b.HasIndex("UserId");
 
@@ -204,9 +226,15 @@ namespace HospitalProject.Migrations
 
             modelBuilder.Entity("HospitalProject.Models.Doctor", b =>
                 {
+                    b.HasOne("HospitalProject.Models.Department", "Department")
+                        .WithMany("Doctors")
+                        .HasForeignKey("DepartmentId");
+
                     b.HasOne("HospitalProject.Models.User", "User")
                         .WithMany("Doctors")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("Department");
 
                     b.Navigation("User");
                 });
@@ -242,6 +270,11 @@ namespace HospitalProject.Migrations
                         .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("HospitalProject.Models.Department", b =>
+                {
+                    b.Navigation("Doctors");
                 });
 
             modelBuilder.Entity("HospitalProject.Models.Doctor", b =>
