@@ -22,6 +22,7 @@ namespace api.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<Slot> Slots { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Department> Department { get; set; }
 
         public override int SaveChanges()
         {
