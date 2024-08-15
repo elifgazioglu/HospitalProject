@@ -23,5 +23,37 @@ namespace api.Data
         public DbSet<Slot> Slots { get; set; }
         public DbSet<User> Users { get; set; }
 
+        public override int SaveChanges()
+        {
+            SetAuditFields();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            SetAuditFields();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void SetAuditFields()
+        {
+            var entries = ChangeTracker
+                .Entries()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .ToList();
+
+            foreach (var entry in entries)
+            {
+                var entityType = entry.Entity.GetType();
+
+                // Check if the entity has a CreatedBy property
+                var createdByProperty = entityType.GetProperty("CreatedAt");
+                if (createdByProperty != null && entry.State == EntityState.Added)
+                {
+                    createdByProperty.SetValue(entry.Entity, DateTime.Now);
+                }
+            }
+        }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using api.Data;
+using AutoMapper;
 using HospitalProject.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +13,13 @@ namespace HospitalProject.Controllers
     public class UserController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
+        private readonly IMapper _mapper;
 
-        public UserController(ApplicationDBContext context)
+        public UserController(ApplicationDBContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
-
 
         [HttpGet]
         public ActionResult<IEnumerable<User>> GetUsers()
@@ -47,5 +49,29 @@ namespace HospitalProject.Controllers
 
             return user;
         }
+        [HttpPost]
+        public ActionResult<User> CreateUser(UserRequestModel user)
+        {
+
+            var userEntityRequest =_mapper.Map<User>(user);
+
+            _context.Users.Add(userEntityRequest); 
+            _context.SaveChanges(); 
+
+            
+            return CreatedAtAction(nameof(GetUser), new { id = userEntityRequest.Id }, user);
+        }
+    }
+
+    public class UserRequestModel
+    {
+        public string Email { get; set; } = null!;
+
+        public string Ad { get; set; } = null!;
+
+        public string Soyad { get; set; } = null!;
+
+        public string Password { get; set; } = null!;
+
     }
 }
