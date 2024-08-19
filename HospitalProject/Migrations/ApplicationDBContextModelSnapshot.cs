@@ -138,6 +138,23 @@ namespace HospitalProject.Migrations
                     b.ToTable("Roles");
                 });
 
+            modelBuilder.Entity("HospitalProject.Models.RoleUser", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("RoleId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RoleUsers");
+                });
+
             modelBuilder.Entity("HospitalProject.Models.Slot", b =>
                 {
                     b.Property<int>("Id")
@@ -244,6 +261,25 @@ namespace HospitalProject.Migrations
                     b.HasOne("HospitalProject.Models.User", "User")
                         .WithMany("Patients")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HospitalProject.Models.RoleUser", b =>
+                {
+                    b.HasOne("HospitalProject.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HospitalProject.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
 
                     b.Navigation("User");
                 });
