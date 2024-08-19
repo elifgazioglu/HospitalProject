@@ -9,6 +9,7 @@ namespace HospitalProject.Mapping
         public MappingProfile()
         {
             CreateMap<User, UserRequestModel>().ReverseMap();
+            CreateMap<Doctor, DoctorRequestModel>().ReverseMap();
         }
     }
 }
