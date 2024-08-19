@@ -2,9 +2,11 @@
 using AutoMapper;
 using HospitalProject.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity; // PasswordHasher için
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 
 namespace HospitalProject.Controllers
@@ -15,11 +17,13 @@ namespace HospitalProject.Controllers
     {
         private readonly ApplicationDBContext _context;
         private readonly IMapper _mapper;
+        private readonly PasswordHasher<User> _passwordHasher;
 
         public UserController(ApplicationDBContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
+            _passwordHasher = new PasswordHasher<User>();
         }
 
         [HttpGet]
@@ -28,12 +32,10 @@ namespace HospitalProject.Controllers
             return _context.Users.ToList();
         }
 
-
         [HttpGet("{id}")]
         public ActionResult<User> GetUser(int id)
         {
             var validation = new IntValidator();
-
             var validationResult = validation.Validate(id);
 
             if (validationResult == null)
@@ -50,23 +52,31 @@ namespace HospitalProject.Controllers
 
             return user;
         }
+
         [HttpPost]
-        public ActionResult<User> CreateUser(UserRequestModel user)
+        public ActionResult<User> CreateUser(UserRequestModel userRequestModel)
         {
+            var userEntity = _mapper.Map<User>(userRequestModel);
 
-            var userEntityRequest = _mapper.Map<User>(user);
+            // Şifreyi hashle
+            var hashedPassword = _passwordHasher.HashPassword(userEntity, userRequestModel.Password);
+            userEntity.Password = hashedPassword;
 
-            _context.Users.Add(userEntityRequest);
+            _context.Users.Add(userEntity);
             _context.SaveChanges();
 
+            var results = new
+            {
+                id = userEntity.Id,
+            };
 
-            return CreatedAtAction(nameof(GetUser), new { id = userEntityRequest.Id }, user);
+            return Created($"CreateUser/{userEntity.Id}", results);
         }
+
         [HttpDelete("{id}")]
         public ActionResult<User> DeleteUser(int id)
         {
             var validation = new IntValidator();
-
             var validationResult = validation.Validate(id);
 
             if (validationResult == null)
@@ -80,21 +90,19 @@ namespace HospitalProject.Controllers
             {
                 return NotFound();
             }
+
             _context.Users.Remove(user);
             _context.SaveChanges();
+
             return NoContent();
         }
     }
-    
+
     public class UserRequestModel
     {
         public string Email { get; set; } = null!;
-
         public string Ad { get; set; } = null!;
-
         public string Soyad { get; set; } = null!;
-
         public string Password { get; set; } = null!;
-
     }
 }
