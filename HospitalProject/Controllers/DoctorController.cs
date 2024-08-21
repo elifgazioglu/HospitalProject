@@ -4,11 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
 using api.Data;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 namespace HospitalProject.Controllers
 {
@@ -17,12 +13,12 @@ namespace HospitalProject.Controllers
     public class DoctorController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
-        private readonly IMapper _mapper;  // _mapper alanı tanımlandı
+        private readonly IMapper _mapper;
 
         public DoctorController(ApplicationDBContext context, IMapper mapper)
         {
             _context = context;
-            _mapper = mapper;  // constructor'da _mapper initialize edildi
+            _mapper = mapper;
         }
 
         
@@ -39,7 +35,6 @@ namespace HospitalProject.Controllers
             return Ok(doctors);
         }
 
-        
         [HttpGet("{id}")]
         public ActionResult<Doctor> GetDoctorById(int id)
         {
@@ -50,6 +45,7 @@ namespace HospitalProject.Controllers
             {
                 return BadRequest(validationResult);
             }
+
             var doctor = _context.Doctors.FirstOrDefault(d => d.Id == id);
 
             if (doctor == null)
@@ -60,26 +56,28 @@ namespace HospitalProject.Controllers
             return Ok(doctor);
         }
 
-        
         [HttpPost]
-        public ActionResult<Doctor> CreateDoctor(DoctorRequestModel doctor)
+        public ActionResult<Doctor> CreateDoctor(DoctorRequestModel doctorRequestModel)
         {
-            var doctorEntityRequest = _mapper.Map<Doctor>(doctor);
+            
+            var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel); 
 
-            _context.Doctors.Add(doctorEntityRequest);
+            
+            _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
 
-            return CreatedAtAction(nameof(GetDoctorById), new { id = doctorEntityRequest.Id }, doctorEntityRequest);
+            var results = new
+            {
+                id = doctorEntity.Id, 
+            };
+
+            return Created($"CreateDoctor/{doctorEntity.Id}", results);
         }
     }
+
     public class DoctorRequestModel
     {
-        public string User_Id { get; set; } = null!;
-
-        public string Salary { get; set; } = null!;
-
+        public int Salary { get; set; } 
         public string Title { get; set; } = null!;
-        
-
     }
 }
