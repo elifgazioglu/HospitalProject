@@ -74,7 +74,7 @@ namespace HospitalProject.Controllers
     }
     public class DoctorRequestModel
     {
-        public string User_Id { get; set; } = null!;
+        public int User_Id { get; set; }
 
         public string Salary { get; set; } = null!;
 
