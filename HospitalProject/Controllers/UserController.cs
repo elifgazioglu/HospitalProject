@@ -1,6 +1,7 @@
 ﻿using api.Data;
 using AutoMapper;
 using HospitalProject.Models;
+using HospitalProject.Models.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity; // PasswordHasher için
 using Microsoft.AspNetCore.Mvc;
@@ -63,6 +64,16 @@ namespace HospitalProject.Controllers
             userEntity.Password = hashedPassword;
 
             _context.Users.Add(userEntity);
+            _context.SaveChanges();
+
+
+            var userRole = new RoleUser
+            {
+                RoleId = (int)Roles.User,
+                UserId = userEntity.Id
+            };
+
+            _context.RoleUsers.Add(userRole);
             _context.SaveChanges();
 
             var results = new
