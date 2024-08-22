@@ -5,13 +5,11 @@ using System.Linq;
 using AutoMapper;
 using api.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization;
 
 namespace HospitalProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class DoctorController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
@@ -23,7 +21,7 @@ namespace HospitalProject.Controllers
             _mapper = mapper;
         }
 
-        
+
         [HttpGet]
         public ActionResult<IEnumerable<Doctor>> GetDoctors()
         {
@@ -61,25 +59,48 @@ namespace HospitalProject.Controllers
         [HttpPost]
         public ActionResult<Doctor> CreateDoctor(DoctorRequestModel doctorRequestModel)
         {
-            
-            var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel); 
 
-            
+            var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
+
+
             _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
 
             var results = new
             {
-                id = doctorEntity.Id, 
+                id = doctorEntity.Id,
             };
 
             return Created($"CreateDoctor/{doctorEntity.Id}", results);
+        }
+        [HttpDelete("{id}")]
+        public ActionResult<Doctor> DeleteDoctor(int id)
+        {
+            var validation = new IntValidator();
+            var validationResult = validation.Validate(id);
+
+            if (validationResult == null)
+            {
+                return BadRequest(validationResult);
+            }
+
+            var doctor = _context.Doctors.Find(id);
+
+            if (doctor == null)
+            {
+                return NotFound();
+            }
+
+            _context.Doctors.Remove(doctor);
+            _context.SaveChanges();
+
+            return NoContent();
         }
     }
 
     public class DoctorRequestModel
     {
-        public int Salary { get; set; } 
+        public int Salary { get; set; }
         public string Title { get; set; } = null!;
     }
 }
