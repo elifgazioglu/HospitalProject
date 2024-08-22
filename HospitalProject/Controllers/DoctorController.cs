@@ -5,11 +5,13 @@ using System.Linq;
 using AutoMapper;
 using api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HospitalProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DoctorController : ControllerBase
     {
         private readonly ApplicationDBContext _context;

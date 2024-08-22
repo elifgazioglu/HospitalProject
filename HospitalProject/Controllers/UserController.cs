@@ -2,6 +2,7 @@
 using AutoMapper;
 using HospitalProject.Models;
 using HospitalProject.Models.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity; // PasswordHasher için
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ namespace HospitalProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
