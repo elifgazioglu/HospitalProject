@@ -60,6 +60,14 @@ namespace HospitalProject.Controllers
         [HttpPost]
         public ActionResult<User> CreateUser(UserRequestModel userRequestModel)
         {
+            var existingUser = _context.Users
+            .FirstOrDefault(u => u.Email == userRequestModel.Email);
+
+            if (existingUser != null)
+            {
+                // E-posta adresi zaten kullanılıyor
+                return Conflict("This mail is already exist");
+            }
             var userEntity = _mapper.Map<User>(userRequestModel);
 
             // Şifreyi hashle
