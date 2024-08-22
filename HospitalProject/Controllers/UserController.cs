@@ -15,7 +15,6 @@ namespace HospitalProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
@@ -30,12 +29,14 @@ namespace HospitalProject.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public ActionResult<IEnumerable<User>> GetUsers()
         {
             return _context.Users.ToList();
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public ActionResult<User> GetUser(int id)
         {
             var validation = new IntValidator();
@@ -87,6 +88,7 @@ namespace HospitalProject.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public ActionResult<User> DeleteUser(int id)
         {
             var validation = new IntValidator();
