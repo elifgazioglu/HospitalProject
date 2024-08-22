@@ -1,15 +1,17 @@
-using HospitalProject.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
 using api.Data;
+using HospitalProject.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HospitalProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Tüm metodlar için kimlik doðrulama gerektirir
     public class DoctorController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
@@ -20,7 +22,6 @@ namespace HospitalProject.Controllers
             _context = context;
             _mapper = mapper;
         }
-
 
         [HttpGet]
         public ActionResult<IEnumerable<Doctor>> GetDoctors()
@@ -57,11 +58,10 @@ namespace HospitalProject.Controllers
         }
 
         [HttpPost]
-        public ActionResult<Doctor> CreateDoctor(DoctorRequestModel doctorRequestModel)
+        [Authorize(Policy = "AdminOnly")] //sadece adminler bu kismi yapabilecek
+        public ActionResult<Doctor> CreateDoctor([FromBody] DoctorRequestModel doctorRequestModel)
         {
-
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
-
 
             _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
@@ -73,7 +73,9 @@ namespace HospitalProject.Controllers
 
             return Created($"CreateDoctor/{doctorEntity.Id}", results);
         }
+
         [HttpDelete("{id}")]
+        [Authorize(Policy = "AdminOnly")] //sadece adminler bu kismi yapabilecek
         public ActionResult<Doctor> DeleteDoctor(int id)
         {
             var validation = new IntValidator();
