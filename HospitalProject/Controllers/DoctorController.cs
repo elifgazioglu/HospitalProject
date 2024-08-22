@@ -73,6 +73,29 @@ namespace HospitalProject.Controllers
 
             return Created($"CreateDoctor/{doctorEntity.Id}", results);
         }
+        [HttpDelete("{id}")]
+        public ActionResult<Doctor> DeleteDoctor(int id)
+        {
+            var validation = new IntValidator();
+            var validationResult = validation.Validate(id);
+
+            if (validationResult == null)
+            {
+                return BadRequest(validationResult);
+            }
+
+            var doctor = _context.Doctors.Find(id);
+
+            if (doctor == null)
+            {
+                return NotFound();
+            }
+
+            _context.Doctors.Remove(doctor);
+            _context.SaveChanges();
+
+            return NoContent();
+        }
     }
 
     public class DoctorRequestModel
