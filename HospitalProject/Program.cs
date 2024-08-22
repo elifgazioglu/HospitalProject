@@ -68,9 +68,14 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+//authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -78,7 +83,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication(); // Ensure authentication middleware is added
+app.UseAuthentication(); //authentication middleware is added
 app.UseAuthorization();
 
 app.MapControllers();
