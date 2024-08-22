@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using api.Data;
 using HospitalProject.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Linq;
 
 namespace HospitalProject.Controllers
 {
@@ -32,6 +33,7 @@ namespace HospitalProject.Controllers
             {
                 return BadRequest("Email and Password are required.");
             }
+
             var user = _context.Users.SingleOrDefault(u => u.Email == model.Email);
 
             if (user == null)
@@ -53,11 +55,23 @@ namespace HospitalProject.Controllers
 
         private string GenerateJwtToken(User user)
         {
-            var claims = new[]
+            // Kullanıcının rollerini veritabanından al
+            var roles = _context.RoleUsers
+                .Where(ru => ru.UserId == user.Id)
+                .Select(ru => ru.Role.Name) // Role.Name ile rol adını al
+                .ToList();
+
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            // Rolleri claim olarak ekle
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
