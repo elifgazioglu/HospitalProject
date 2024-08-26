@@ -62,10 +62,10 @@ namespace HospitalProject.Controllers
                 .ToList();
 
             var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+    {
+        new Claim(_configuration["Jwt:NameIdentifier"], user.Id.ToString()), // Kullanıcı ID'sini burada tanımla
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
 
             // Rolleri claim olarak ekle
             foreach (var role in roles)
@@ -85,6 +85,7 @@ namespace HospitalProject.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
     }
 
     public class LoginRequestModel

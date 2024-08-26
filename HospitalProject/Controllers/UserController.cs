@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity; // PasswordHasher için
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HospitalProject.Controllers
 {
@@ -20,12 +22,17 @@ namespace HospitalProject.Controllers
         private readonly ApplicationDBContext _context;
         private readonly IMapper _mapper;
         private readonly PasswordHasher<User> _passwordHasher;
+        private readonly IConfiguration _configuration;
+        private readonly string _nameIdentifier;
 
-        public UserController(ApplicationDBContext context, IMapper mapper)
+        public UserController(ApplicationDBContext context, IMapper mapper, IConfiguration configuration)
         {
             _context = context;
             _mapper = mapper;
             _passwordHasher = new PasswordHasher<User>();
+            _configuration = configuration;
+            _nameIdentifier = _configuration["Jwt:NameIdentifier"];
+
         }
 
         [HttpGet]
@@ -39,12 +46,27 @@ namespace HospitalProject.Controllers
         [Authorize]
         public ActionResult<User> GetUser(int id)
         {
+            // Token'dan kullanıcının ID'sini alın
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == _nameIdentifier)?.Value;
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out var tokenUserId))
+            {
+                return Unauthorized("Invalid token.");
+            }
+
+            // Validation işlemini yap
             var validation = new IntValidator();
             var validationResult = validation.Validate(id);
 
-            if (validationResult == null)
+            if (!validationResult.IsValid)
             {
-                return BadRequest(validationResult);
+                return BadRequest(validationResult.Errors);
+            }
+
+            // Eğer istenilen ID ile token'daki ID eşleşmiyorsa, yetkisiz erişim hatası döndür
+            if (tokenUserId != id)
+            {
+                return Forbid("You can only access your own data.");
             }
 
             var user = _context.Users.Find(id);
@@ -56,6 +78,8 @@ namespace HospitalProject.Controllers
 
             return user;
         }
+
+
 
         [HttpPost]
         public ActionResult<User> CreateUser(UserRequestModel userRequestModel)
