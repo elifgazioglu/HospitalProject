@@ -55,19 +55,16 @@ namespace HospitalProject.Controllers
 
         private string GenerateJwtToken(User user)
         {
-            // Kullanıcının rollerini veritabanından al
             var roles = _context.RoleUsers
                 .Where(ru => ru.UserId == user.Id)
-                .Select(ru => ru.Role.Name) // Role.Name ile rol adını al
+                .Select(ru => ru.Role.Name)
                 .ToList();
 
             var claims = new List<Claim>
     {
-        new Claim(_configuration["Jwt:NameIdentifier"], user.Id.ToString()), // Kullanıcı ID'sini burada tanımla
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(_configuration["Jwt:NameIdentifier"], user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
     };
-
-            // Rolleri claim olarak ekle
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));

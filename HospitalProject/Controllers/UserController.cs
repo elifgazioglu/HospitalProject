@@ -123,12 +123,24 @@ namespace HospitalProject.Controllers
         [Authorize]
         public ActionResult<User> DeleteUser(int id)
         {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == _nameIdentifier)?.Value;
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out var tokenUserId))
+            {
+                return Unauthorized("Invalid token.");
+            }
+
             var validation = new IntValidator();
             var validationResult = validation.Validate(id);
 
             if (validationResult == null)
             {
                 return BadRequest(validationResult);
+            }
+
+            if (tokenUserId != id)
+            {
+                return Forbid("You can only access your own data.");
             }
 
             var user = _context.Users.Find(id);
