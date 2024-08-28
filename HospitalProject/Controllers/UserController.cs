@@ -32,7 +32,6 @@ namespace HospitalProject.Controllers
             _passwordHasher = new PasswordHasher<User>();
             _configuration = configuration;
             _nameIdentifier = _configuration["Jwt:NameIdentifier"];
-
         }
 
         [HttpGet]
@@ -46,7 +45,6 @@ namespace HospitalProject.Controllers
         [Authorize]
         public ActionResult<User> GetUser(int id)
         {
-            // Token'dan kullanıcının ID'sini alın
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == _nameIdentifier)?.Value;
 
             if (userIdClaim == null || !int.TryParse(userIdClaim, out var tokenUserId))
@@ -54,7 +52,6 @@ namespace HospitalProject.Controllers
                 return Unauthorized("Invalid token.");
             }
 
-            // Validation işlemini yap
             var validation = new IntValidator();
             var validationResult = validation.Validate(id);
 
@@ -63,7 +60,6 @@ namespace HospitalProject.Controllers
                 return BadRequest(validationResult.Errors);
             }
 
-            // Eğer istenilen ID ile token'daki ID eşleşmiyorsa, yetkisiz erişim hatası döndür
             if (tokenUserId != id)
             {
                 return Forbid("You can only access your own data.");
@@ -79,28 +75,24 @@ namespace HospitalProject.Controllers
             return user;
         }
 
-
-
         [HttpPost]
         public ActionResult<User> CreateUser(UserRequestModel userRequestModel)
         {
             var existingUser = _context.Users
-            .FirstOrDefault(u => u.Email == userRequestModel.Email);
+                .FirstOrDefault(u => u.Email == userRequestModel.Email);
 
             if (existingUser != null)
             {
-                // E-posta adresi zaten kullanılıyor
                 return Conflict("This mail is already exist");
             }
+
             var userEntity = _mapper.Map<User>(userRequestModel);
 
-            // Şifreyi hashle
             var hashedPassword = _passwordHasher.HashPassword(userEntity, userRequestModel.Password);
             userEntity.Password = hashedPassword;
 
             _context.Users.Add(userEntity);
             _context.SaveChanges();
-
 
             var userRole = new RoleUser
             {
@@ -117,6 +109,59 @@ namespace HospitalProject.Controllers
             };
 
             return Created($"CreateUser/{userEntity.Id}", results);
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public ActionResult<User> UpdateUser(int id, UserUpdateRequestModel updateRequestModel)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == _nameIdentifier)?.Value;
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out var tokenUserId))
+            {
+                return Unauthorized("Invalid token.");
+            }
+
+            var validation = new IntValidator();
+            var validationResult = validation.Validate(id);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors);
+            }
+
+            if (tokenUserId != id)
+            {
+                return Forbid("You can only update your own data.");
+            }
+
+            var user = _context.Users.Find(id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (!string.IsNullOrEmpty(updateRequestModel.Ad))
+            {
+                user.Ad = updateRequestModel.Ad;
+            }
+
+            if (!string.IsNullOrEmpty(updateRequestModel.Soyad))
+            {
+                user.Soyad = updateRequestModel.Soyad;
+            }
+
+            if (!string.IsNullOrEmpty(updateRequestModel.Password))
+            {
+                var hashedPassword = _passwordHasher.HashPassword(user, updateRequestModel.Password);
+                user.Password = hashedPassword;
+            }
+
+            _context.Users.Update(user);
+            _context.SaveChanges();
+
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
@@ -140,7 +185,7 @@ namespace HospitalProject.Controllers
 
             if (tokenUserId != id)
             {
-                return Forbid("You can only access your own data.");
+                return Forbid("You can only delete your own data.");
             }
 
             var user = _context.Users.Find(id);
@@ -163,5 +208,12 @@ namespace HospitalProject.Controllers
         public string Ad { get; set; } = null!;
         public string Soyad { get; set; } = null!;
         public string Password { get; set; } = null!;
+    }
+
+    public class UserUpdateRequestModel
+    {
+        public string? Ad { get; set; }
+        public string? Soyad { get; set; }
+        public string? Password { get; set; }
     }
 }
