@@ -5,6 +5,7 @@ using api.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text;
+using HospitalProject.UserContext;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,8 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
 });
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
