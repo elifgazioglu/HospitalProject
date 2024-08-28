@@ -9,7 +9,7 @@ public partial class Patient
 
     public int? UserId { get; set; }
 
-    public DateOnly? BirthDate { get; set; }
+    public DateTime? BirthDate { get; set; }
 
     public string? BloodType { get; set; }
 
@@ -18,6 +18,7 @@ public partial class Patient
     public int? WeightCm { get; set; }
 
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+
 
     public virtual User? User { get; set; }
 }
