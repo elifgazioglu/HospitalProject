@@ -6,12 +6,13 @@ using AutoMapper;
 using api.Data;
 using HospitalProject.Models;
 using Microsoft.EntityFrameworkCore;
+using HospitalProject.Models.Enums;
 
 namespace HospitalProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // T�m metodlar i�in kimlik do�rulama gerektirir
+    [Authorize]
     public class DoctorController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
@@ -58,24 +59,41 @@ namespace HospitalProject.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "AdminOnly")] //sadece adminler bu kismi yapabilecek
-        public ActionResult<Doctor> CreateDoctor([FromBody] DoctorRequestModel doctorRequestModel)
+        [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
+        public ActionResult<Doctor> AssignDoctorRole(int userId, [FromBody] DoctorRequestModel doctorRequestModel)
         {
+            var user = _context.Users.Find(userId);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
+            doctorEntity.UserId = userId;
 
             _context.Doctors.Add(doctorEntity);
+            _context.SaveChanges();
+
+            var userRole = new RoleUser
+            {
+                RoleId = (int)Roles.Doctor,
+                UserId = userId // Kullanıcı kimliği ile doktor atanıyor
+            };
+
+            _context.RoleUsers.Add(userRole);
             _context.SaveChanges();
 
             var results = new
             {
                 id = doctorEntity.Id,
+                userId = userId
             };
 
-            return Created($"CreateDoctor/{doctorEntity.Id}", results);
+            return Created($"AssignDoctorRole/{doctorEntity.Id}", results);
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "AdminOnly")] //sadece adminler bu kismi yapabilecek
+        [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
         public ActionResult<Doctor> DeleteDoctor(int id)
         {
             var validation = new IntValidator();
