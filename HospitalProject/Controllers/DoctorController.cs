@@ -59,8 +59,8 @@ namespace HospitalProject.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
-        public ActionResult<Doctor> AssignDoctorRole(int userId, [FromBody] DoctorRequestModel doctorRequestModel)
+        [Authorize(Policy = "AdminOnly")]
+        public ActionResult<Doctor> AssignDoctorRoleAndDepartment(int userId, int departmentId, [FromBody] DoctorRequestModel doctorRequestModel)
         {
             var user = _context.Users.Find(userId);
             if (user == null)
@@ -68,8 +68,14 @@ namespace HospitalProject.Controllers
                 return NotFound("User not found.");
             }
 
+            if (!Enum.IsDefined(typeof(Departments), departmentId))
+            {
+                return BadRequest("Invalid department ID.");
+            }
+
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
             doctorEntity.UserId = userId;
+            doctorEntity.DepartmentId = departmentId;
 
             _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
@@ -77,7 +83,7 @@ namespace HospitalProject.Controllers
             var userRole = new RoleUser
             {
                 RoleId = (int)Roles.Doctor,
-                UserId = userId // Kullanıcı kimliği ile doktor atanıyor
+                UserId = userId
             };
 
             _context.RoleUsers.Add(userRole);
@@ -86,14 +92,15 @@ namespace HospitalProject.Controllers
             var results = new
             {
                 id = doctorEntity.Id,
-                userId = userId
+                userId = userId,
+                departmentId = departmentId
             };
 
-            return Created($"AssignDoctorRole/{doctorEntity.Id}", results);
+            return Created($"AssignDoctorRoleAndDepartment/{doctorEntity.Id}", results);
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
+        [Authorize(Policy = "AdminOnly")]
         public ActionResult<Doctor> DeleteDoctor(int id)
         {
             var validation = new IntValidator();
