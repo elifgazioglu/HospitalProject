@@ -60,7 +60,7 @@ namespace HospitalProject.Controllers
 
         [HttpPost]
         [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
-        public ActionResult<Doctor> AssignDoctorRole(int userId, [FromBody] DoctorRequestModel doctorRequestModel)
+        public ActionResult<Doctor> AssignDoctorRoleAndDepartment(int userId, int departmentId, [FromBody] DoctorRequestModel doctorRequestModel)
         {
             var user = _context.Users.Find(userId);
             if (user == null)
@@ -68,8 +68,15 @@ namespace HospitalProject.Controllers
                 return NotFound("User not found.");
             }
 
+            var department = _context.Department.Find(departmentId);
+            if (department == null)
+            {
+                return NotFound("Department not found.");
+            }
+
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
             doctorEntity.UserId = userId;
+            doctorEntity.DepartmentId = departmentId; // Departman ID atanıyor
 
             _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
@@ -86,10 +93,11 @@ namespace HospitalProject.Controllers
             var results = new
             {
                 id = doctorEntity.Id,
-                userId = userId
+                userId = userId,
+                departmentId = departmentId // Departman bilgisi döndürülüyor
             };
 
-            return Created($"AssignDoctorRole/{doctorEntity.Id}", results);
+            return Created($"AssignDoctorRoleAndDepartment/{doctorEntity.Id}", results);
         }
 
         [HttpDelete("{id}")]
