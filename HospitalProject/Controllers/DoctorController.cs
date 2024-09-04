@@ -59,7 +59,7 @@ namespace HospitalProject.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
+        [Authorize(Policy = "AdminOnly")]
         public ActionResult<Doctor> AssignDoctorRoleAndDepartment(int userId, int departmentId, [FromBody] DoctorRequestModel doctorRequestModel)
         {
             var user = _context.Users.Find(userId);
@@ -69,13 +69,10 @@ namespace HospitalProject.Controllers
             }
 
             var department = _context.Department.Find(departmentId);
-            if (department == null)
-            {
-                return NotFound("Department not found.");
-            }
 
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
             doctorEntity.UserId = userId;
+
             doctorEntity.DepartmentId = departmentId; // Departman ID atanıyor
 
             _context.Doctors.Add(doctorEntity);
@@ -84,7 +81,7 @@ namespace HospitalProject.Controllers
             var userRole = new RoleUser
             {
                 RoleId = (int)Roles.Doctor,
-                UserId = userId // Kullanıcı kimliği ile doktor atanıyor
+                UserId = userId
             };
 
             _context.RoleUsers.Add(userRole);
@@ -101,7 +98,7 @@ namespace HospitalProject.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "AdminOnly")] // Sadece adminler bu kısımda işlem yapabilir
+        [Authorize(Policy = "AdminOnly")]
         public ActionResult<Doctor> DeleteDoctor(int id)
         {
             var validation = new IntValidator();

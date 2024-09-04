@@ -38,9 +38,9 @@ namespace HospitalProject.Controllers
             var validation = new IntValidator();
             var validationResult = validation.Validate(id);
 
-            if (validationResult == null)
+            if (!validationResult.IsValid)
             {
-                return BadRequest(validationResult);
+                return BadRequest(validationResult.Errors);
             }
 
             var patient = _context.Patients.Find(id);
@@ -66,7 +66,6 @@ namespace HospitalProject.Controllers
 
             var userIdToInt = Convert.ToInt32(userId);
 
-
             var userRole = new RoleUser
             {
                 RoleId = (int)Roles.Patient,
@@ -88,9 +87,37 @@ namespace HospitalProject.Controllers
             _context.Patients.Add(patientEntity);
             _context.SaveChanges();
 
-            return CreatedAtAction("CreatePatient", new { id = patientEntity.Id });
+            return CreatedAtAction("GetPatient", new { id = patientEntity.Id }, patientEntity);
         }
 
+        [HttpPut("{id}/updatePhysicalAttributes")]
+        [Authorize]
+        public ActionResult<Patient> UpdatePhysicalAttributes(int id, [FromBody] UpdatePhysicalAttributesRequestModel model)
+        {
+            var validation = new IntValidator();
+            var validationResult = validation.Validate(id);
+
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors);
+            }
+
+            var patient = _context.Patients.Find(id);
+
+            if (patient == null)
+            {
+                return NotFound();
+            }
+
+            // Boy ve kilo değerlerini güncelleme
+            patient.HeightCm = model.HeightCm;
+            patient.WeightCm = model.WeightCm;
+
+            _context.Patients.Update(patient);
+            _context.SaveChanges();
+
+            return Ok(patient);
+        }
 
         [HttpDelete("{id}")]
         [Authorize]
@@ -99,9 +126,9 @@ namespace HospitalProject.Controllers
             var validation = new IntValidator();
             var validationResult = validation.Validate(id);
 
-            if (validationResult == null)
+            if (!validationResult.IsValid)
             {
-                return BadRequest(validationResult);
+                return BadRequest(validationResult.Errors);
             }
 
             var patient = _context.Patients.Find(id);
@@ -122,6 +149,12 @@ namespace HospitalProject.Controllers
     {
         public DateTime? BirthDate { get; set; }
         public string BloodType { get; set; } = null!;
+        public int HeightCm { get; set; }
+        public int WeightCm { get; set; }
+    }
+
+    public class UpdatePhysicalAttributesRequestModel
+    {
         public int HeightCm { get; set; }
         public int WeightCm { get; set; }
     }
