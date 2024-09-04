@@ -5,6 +5,7 @@ using api.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text;
+using HospitalProject.Services; // Background service için gerekli namespace
 using HospitalProject.UserContext;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,7 +52,10 @@ builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Configure JWT Authentication
+
+builder.Services.AddHostedService<SlotCreationService>();
+
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -86,7 +90,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication(); //authentication middleware is added
+app.UseAuthentication(); 
 app.UseAuthorization();
 
 app.MapControllers();

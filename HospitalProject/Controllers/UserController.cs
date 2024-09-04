@@ -216,4 +216,4 @@ namespace HospitalProject.Controllers
         public string? Soyad { get; set; }
         public string? Password { get; set; }
     }
-}
+

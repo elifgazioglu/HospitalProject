@@ -68,14 +68,12 @@ namespace HospitalProject.Controllers
                 return NotFound("User not found.");
             }
 
-            if (!Enum.IsDefined(typeof(Departments), departmentId))
-            {
-                return BadRequest("Invalid department ID.");
-            }
+            var department = _context.Department.Find(departmentId);
 
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
             doctorEntity.UserId = userId;
-            doctorEntity.DepartmentId = departmentId;
+
+            doctorEntity.DepartmentId = departmentId; // Departman ID atanıyor
 
             _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
@@ -93,7 +91,7 @@ namespace HospitalProject.Controllers
             {
                 id = doctorEntity.Id,
                 userId = userId,
-                departmentId = departmentId
+                departmentId = departmentId // Departman bilgisi döndürülüyor
             };
 
             return Created($"AssignDoctorRoleAndDepartment/{doctorEntity.Id}", results);
