@@ -5,7 +5,6 @@ using HospitalProject.UserContext;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
-using System.Security.Claims;
 
 namespace HospitalProject.Controllers
 {
@@ -42,7 +41,6 @@ namespace HospitalProject.Controllers
                 return NotFound("Patient profile not found for the user.");
             }
 
-            // Slot ve doktor kontrolü yapılıyor
             var slot = _context.Slots.FirstOrDefault(s => s.Id == appointmentRequestModel.SlotId && s.DoctorId == appointmentRequestModel.DoctorId && s.Status == 1);
 
             if (slot == null)
@@ -57,19 +55,49 @@ namespace HospitalProject.Controllers
             };
 
             _context.Appointments.Add(appointmentEntity);
-            slot.Status = 0; // Slotu meşgul olarak işaretle
+            slot.Status = 0;
             _context.SaveChanges();
 
             return CreatedAtAction("CreateAppointment", new { id = appointmentEntity.Id });
         }
 
+        [HttpPut("{id}")]
+        [Authorize]
+        public ActionResult<Appointment> UpdateAppointment(int id, AppointmentUpdateModel updateModel)
+        {
+            var appointment = _context.Appointments.FirstOrDefault(a => a.Id == id);
 
+            if (appointment == null)
+            {
+                return NotFound("Appointment not found.");
+            }
+
+            var oldSlot = _context.Slots.FirstOrDefault(s => s.Id == appointment.SlotId);
+            if (oldSlot != null)
+            {
+                oldSlot.Status = 1;
+            }
+
+            var newSlot = _context.Slots.FirstOrDefault(s => s.Id == updateModel.SlotId && s.DoctorId == updateModel.DoctorId && s.Status == 1);
+
+            if (newSlot == null)
+            {
+                return NotFound("Seçilen doktorun uygun bir slotu bulunamadı veya slot dolu.");
+            }
+
+            appointment.SlotId = updateModel.SlotId;
+            newSlot.Status = 0;
+
+            _context.Appointments.Update(appointment);
+            _context.SaveChanges();
+
+            return NoContent();
+        }
 
         [HttpGet("GetAvailableSlots")]
         [Authorize]
         public ActionResult<IEnumerable<Slot>> GetAvailableSlots(int doctorId)
         {
-
             var availableSlots = _context.Slots
                 .Where(s => s.DoctorId == doctorId && s.Status == 1)
                 .ToList();
@@ -84,9 +112,14 @@ namespace HospitalProject.Controllers
     }
 
     public class AppointmentRequestModel
-{
-    public int SlotId { get; set; }
-    public int DoctorId { get; set; } // Doktor ID'sini ekledik
-}
+    {
+        public int SlotId { get; set; }
+        public int DoctorId { get; set; }
+    }
 
+    public class AppointmentUpdateModel
+    {
+        public int SlotId { get; set; }
+        public int DoctorId { get; set; }
+    }
 }
