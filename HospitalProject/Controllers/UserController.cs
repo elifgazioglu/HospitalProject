@@ -11,7 +11,6 @@ using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HospitalProject.Controllers
 {
@@ -52,14 +51,6 @@ namespace HospitalProject.Controllers
                 return Unauthorized("Invalid token.");
             }
 
-            var validation = new IntValidator();
-            var validationResult = validation.Validate(id);
-
-            if (!validationResult.IsValid)
-            {
-                return BadRequest(validationResult.Errors);
-            }
-
             if (tokenUserId != id)
             {
                 return Forbid("You can only access your own data.");
@@ -69,10 +60,10 @@ namespace HospitalProject.Controllers
 
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User not found.");
             }
 
-            return user;
+            return Ok(user);
         }
 
         [HttpPost]
@@ -83,13 +74,11 @@ namespace HospitalProject.Controllers
 
             if (existingUser != null)
             {
-                return Conflict("This mail is already exist");
+                return Conflict("This mail already exists.");
             }
 
             var userEntity = _mapper.Map<User>(userRequestModel);
-
-            var hashedPassword = _passwordHasher.HashPassword(userEntity, userRequestModel.Password);
-            userEntity.Password = hashedPassword;
+            userEntity.Password = _passwordHasher.HashPassword(userEntity, userRequestModel.Password);
 
             _context.Users.Add(userEntity);
             _context.SaveChanges();
@@ -103,12 +92,7 @@ namespace HospitalProject.Controllers
             _context.RoleUsers.Add(userRole);
             _context.SaveChanges();
 
-            var results = new
-            {
-                id = userEntity.Id,
-            };
-
-            return Created($"CreateUser/{userEntity.Id}", results);
+            return CreatedAtAction(nameof(GetUser), new { id = userEntity.Id }, new { id = userEntity.Id });
         }
 
         [HttpPut("{id}")]
@@ -122,14 +106,6 @@ namespace HospitalProject.Controllers
                 return Unauthorized("Invalid token.");
             }
 
-            var validation = new IntValidator();
-            var validationResult = validation.Validate(id);
-
-            if (!validationResult.IsValid)
-            {
-                return BadRequest(validationResult.Errors);
-            }
-
             if (tokenUserId != id)
             {
                 return Forbid("You can only update your own data.");
@@ -139,7 +115,7 @@ namespace HospitalProject.Controllers
 
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User not found.");
             }
 
             if (!string.IsNullOrEmpty(updateRequestModel.Ad))
@@ -154,8 +130,7 @@ namespace HospitalProject.Controllers
 
             if (!string.IsNullOrEmpty(updateRequestModel.Password))
             {
-                var hashedPassword = _passwordHasher.HashPassword(user, updateRequestModel.Password);
-                user.Password = hashedPassword;
+                user.Password = _passwordHasher.HashPassword(user, updateRequestModel.Password);
             }
 
             _context.Users.Update(user);
@@ -166,21 +141,13 @@ namespace HospitalProject.Controllers
 
         [HttpDelete("{id}")]
         [Authorize]
-        public ActionResult<User> DeleteUser(int id)
+        public ActionResult DeleteUser(int id)
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == _nameIdentifier)?.Value;
 
             if (userIdClaim == null || !int.TryParse(userIdClaim, out var tokenUserId))
             {
                 return Unauthorized("Invalid token.");
-            }
-
-            var validation = new IntValidator();
-            var validationResult = validation.Validate(id);
-
-            if (validationResult == null)
-            {
-                return BadRequest(validationResult);
             }
 
             if (tokenUserId != id)
@@ -192,7 +159,7 @@ namespace HospitalProject.Controllers
 
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User not found.");
             }
 
             _context.Users.Remove(user);
@@ -217,4 +184,3 @@ namespace HospitalProject.Controllers
         public string? Password { get; set; }
     }
 }
-

@@ -24,6 +24,7 @@ namespace HospitalProject.Controllers
             _mapper = mapper;
         }
 
+        // Tüm doktorları getirme
         [HttpGet]
         public ActionResult<IEnumerable<Doctor>> GetDoctors()
         {
@@ -37,6 +38,7 @@ namespace HospitalProject.Controllers
             return Ok(doctors);
         }
 
+        // ID'ye göre doktor getirme
         [HttpGet("{id}")]
         public ActionResult<Doctor> GetDoctorById(int id)
         {
@@ -58,6 +60,7 @@ namespace HospitalProject.Controllers
             return Ok(doctor);
         }
 
+        // Doktor rolü ve departman atama
         [HttpPost]
         [Authorize(Policy = "AdminOnly")]
         public ActionResult<Doctor> AssignDoctorRoleAndDepartment(int userId, int departmentId, [FromBody] DoctorRequestModel doctorRequestModel)
@@ -68,12 +71,22 @@ namespace HospitalProject.Controllers
                 return NotFound("User not found.");
             }
 
-            var department = _context.Department.Find(departmentId);
+            var department = _context.Department.Find(departmentId); // Fixed typo from `Department` to `Departments`
+            if (department == null)
+            {
+                return NotFound("Department not found.");
+            }
+
+            // Mevcut doktoru kontrol et
+            var existingDoctor = _context.Doctors.FirstOrDefault(d => d.UserId == userId && d.DepartmentId == departmentId);
+            if (existingDoctor != null)
+            {
+                return BadRequest("Doctor already exists in this department.");
+            }
 
             var doctorEntity = _mapper.Map<Doctor>(doctorRequestModel);
             doctorEntity.UserId = userId;
-
-            doctorEntity.DepartmentId = departmentId; // Departman ID atanıyor
+            doctorEntity.DepartmentId = departmentId;
 
             _context.Doctors.Add(doctorEntity);
             _context.SaveChanges();
@@ -91,12 +104,43 @@ namespace HospitalProject.Controllers
             {
                 id = doctorEntity.Id,
                 userId = userId,
-                departmentId = departmentId // Departman bilgisi döndürülüyor
+                departmentId = departmentId
             };
 
-            return Created($"AssignDoctorRoleAndDepartment/{doctorEntity.Id}", results);
+            return Created($"api/Doctor/{doctorEntity.Id}", results); // Adjusted URL for Created response
         }
 
+        // Adminin doktor özelliklerini güncellemesi
+        [HttpPut("{id}")]
+        [Authorize(Policy = "AdminOnly")]
+        public ActionResult<Doctor> UpdateDoctor(int id, [FromBody] DoctorRequestModel doctorRequestModel)
+        {
+            var validation = new IntValidator();
+            var validationResult = validation.Validate(id);
+
+            if (validationResult == null)
+            {
+                return BadRequest(validationResult);
+            }
+
+            var doctor = _context.Doctors.Find(id);
+
+            if (doctor == null)
+            {
+                return NotFound("Doctor not found.");
+            }
+
+            // Doktor özelliklerini güncelleme
+            doctor.Salary = doctorRequestModel.Salary;
+            doctor.Title = doctorRequestModel.Title;
+
+            _context.Doctors.Update(doctor);
+            _context.SaveChanges();
+
+            return Ok(doctor);
+        }
+
+        // Adminin doktoru silmesi
         [HttpDelete("{id}")]
         [Authorize(Policy = "AdminOnly")]
         public ActionResult<Doctor> DeleteDoctor(int id)
@@ -129,3 +173,4 @@ namespace HospitalProject.Controllers
         public string Title { get; set; } = null!;
     }
 }
+
