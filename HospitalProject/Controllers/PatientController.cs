@@ -1,7 +1,6 @@
 ﻿using api.Data;
 using AutoMapper;
 using HospitalProject.Models;
-using HospitalProject.Models.Enums;
 using HospitalProject.UserContext;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,25 +23,41 @@ namespace HospitalProject.Controllers
             _userService = userService;
         }
 
+        // Tüm hastaları getirme (sadece admin yetkilendirmesi gerektirir)
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public ActionResult<IEnumerable<Patient>> GetPatients()
         {
             return _context.Patients.ToList();
         }
 
-        [HttpGet("{id}")]
+        // Hastanın sadece kendi bilgilerini görüntüleyebilmesi
+        [HttpGet("me")]
         [Authorize]
-        public ActionResult<Patient> GetPatient(int id)
+        public ActionResult<Patient> GetMyInfo()
         {
-            var validation = new IntValidator();
-            var validationResult = validation.Validate(id);
+            var userId = _userService.GetUserId();
 
-            if (!validationResult.IsValid)
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest(validationResult.Errors);
+                return NotFound("User not found");
             }
 
+            var patient = _context.Patients.SingleOrDefault(p => p.UserId == Convert.ToInt32(userId));
+
+            if (patient == null)
+            {
+                return NotFound("Patient not found");
+            }
+
+            return Ok(patient);
+        }
+
+        // ID'ye göre belirli bir hastayı getirme (Admin yetkisi gerektirir)
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
+        public ActionResult<Patient> GetPatient(int id)
+        {
             var patient = _context.Patients.Find(id);
 
             if (patient == null)
@@ -50,9 +65,10 @@ namespace HospitalProject.Controllers
                 return NotFound();
             }
 
-            return patient;
+            return Ok(patient);
         }
 
+        // Yeni hasta oluşturma
         [HttpPost]
         [Authorize]
         public ActionResult<Patient> CreatePatient(PatientRequestModel patientRequestModel)
@@ -65,15 +81,6 @@ namespace HospitalProject.Controllers
             }
 
             var userIdToInt = Convert.ToInt32(userId);
-
-            var userRole = new RoleUser
-            {
-                RoleId = (int)Roles.Patient,
-                UserId = userIdToInt
-            };
-
-            _context.RoleUsers.Add(userRole);
-            _context.SaveChanges();
 
             var patientEntity = new Patient
             {
@@ -90,18 +97,40 @@ namespace HospitalProject.Controllers
             return CreatedAtAction("GetPatient", new { id = patientEntity.Id }, patientEntity);
         }
 
-        [HttpPut("{id}/updatePhysicalAttributes")]
+        // Hastanın kendi fiziksel özelliklerini güncellemesi
+        [HttpPut("me/updatePhysicalAttributes")]
         [Authorize]
-        public ActionResult<Patient> UpdatePhysicalAttributes(int id, [FromBody] UpdatePhysicalAttributesRequestModel model)
+        public ActionResult<Patient> UpdateMyPhysicalAttributes([FromBody] UpdatePhysicalAttributesRequestModel model)
         {
-            var validation = new IntValidator();
-            var validationResult = validation.Validate(id);
+            var userId = _userService.GetUserId();
 
-            if (!validationResult.IsValid)
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest(validationResult.Errors);
+                return NotFound("User not found");
             }
 
+            var patient = _context.Patients.SingleOrDefault(p => p.UserId == Convert.ToInt32(userId));
+
+            if (patient == null)
+            {
+                return NotFound("Patient not found");
+            }
+
+            // Boy ve kilo değerlerini güncelleme
+            patient.HeightCm = model.HeightCm;
+            patient.WeightCm = model.WeightCm;
+
+            _context.Patients.Update(patient);
+            _context.SaveChanges();
+
+            return Ok(patient);
+        }
+
+        // Adminin belirli bir hastanın fiziksel özelliklerini güncellemesi
+        [HttpPut("{id}/updatePhysicalAttributes")]
+        [Authorize(Roles = "Admin")]
+        public ActionResult<Patient> UpdatePhysicalAttributes(int id, [FromBody] UpdatePhysicalAttributesRequestModel model)
+        {
             var patient = _context.Patients.Find(id);
 
             if (patient == null)
@@ -119,18 +148,36 @@ namespace HospitalProject.Controllers
             return Ok(patient);
         }
 
-        [HttpDelete("{id}")]
+        // Hastanın kendi hesabını silmesi
+        [HttpDelete("me")]
         [Authorize]
-        public ActionResult<Patient> DeletePatient(int id)
+        public ActionResult DeleteMyAccount()
         {
-            var validation = new IntValidator();
-            var validationResult = validation.Validate(id);
+            var userId = _userService.GetUserId();
 
-            if (!validationResult.IsValid)
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest(validationResult.Errors);
+                return NotFound("User not found");
             }
 
+            var patient = _context.Patients.SingleOrDefault(p => p.UserId == Convert.ToInt32(userId));
+
+            if (patient == null)
+            {
+                return NotFound("Patient not found");
+            }
+
+            _context.Patients.Remove(patient);
+            _context.SaveChanges();
+
+            return NoContent();
+        }
+
+        // Adminin belirli bir hastayı silmesi
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public ActionResult DeletePatient(int id)
+        {
             var patient = _context.Patients.Find(id);
 
             if (patient == null)
@@ -159,3 +206,5 @@ namespace HospitalProject.Controllers
         public int WeightCm { get; set; }
     }
 }
+
+
