@@ -1,6 +1,7 @@
 ﻿using api.Data;
 using AutoMapper;
 using HospitalProject.Models;
+using HospitalProject.Models.Enums;
 using HospitalProject.UserContext;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -81,6 +82,15 @@ namespace HospitalProject.Controllers
             }
 
             var userIdToInt = Convert.ToInt32(userId);
+            var userRole = new RoleUser
+            {
+                RoleId = (int)Roles.Patient,
+                UserId = userIdToInt
+            };
+
+            _context.RoleUsers.Add(userRole);
+            _context.SaveChanges();
+
 
             var patientEntity = new Patient
             {
