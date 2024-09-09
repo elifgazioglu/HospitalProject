@@ -62,8 +62,8 @@ namespace HospitalProject.Controllers
 
             var claims = new List<Claim>
     {
-            new Claim(_configuration["Jwt:NameIdentifier"], user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        new Claim(_configuration["Jwt:NameIdentifier"], user.Id.ToString()),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
     };
             foreach (var role in roles)
             {
@@ -77,11 +77,12 @@ namespace HospitalProject.Controllers
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddMinutes(1),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
 
     }
 
