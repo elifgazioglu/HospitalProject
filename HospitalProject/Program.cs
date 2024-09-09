@@ -1,98 +1,129 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models; // Swagger için gerekli namespace
+using Microsoft.OpenApi.Models;
 using api.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text;
-using HospitalProject.Services; // Background service için gerekli namespace
+using HospitalProject.Services;
 using HospitalProject.UserContext;
+using Serilog; // Serilog için gerekli namespace
+using Serilog.Events; // LogLevel'ler için gerekli
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+// 1. Serilog yapýlandýrmasý
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()  // Minimum log seviyesi
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)  // Microsoft kaynaklý loglarda uyarý seviyesine ayarladýk
+    .Enrich.FromLogContext()  // Loglara baðlam bilgisi ekle
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)  // Günlük log dosyalarý
+    .CreateLogger();
+
+// 2. ASP.NET Core uygulamasýna Serilog'u ekliyoruz
+builder.Host.UseSerilog();
+
+// Uygulama baþlarken loglama
+Log.Information("Uygulama baþlýyor...");
+
+try
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "HospitalProject", Version = "v1" });
-
-    // Define the Bearer Auth scheme
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    // Add services to the container.
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
     {
-        Description = "example: \" Bearer token\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "HospitalProject", Version = "v1" });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
-            new OpenApiSecurityScheme
+            Description = "example: \" Bearer token\"",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer"
+        });
+
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
             {
-                Reference = new OpenApiReference
+                new OpenApiSecurityScheme
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new List<string>()
-        }
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                new List<string>()
+            }
+        });
     });
-});
 
-builder.Services.AddDbContext<ApplicationDBContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
-
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IUserService, UserService>();
-
-
-builder.Services.AddHostedService<SlotCreationService>();
-
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    builder.Services.AddDbContext<ApplicationDBContext>(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
-    };
-});
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+               .EnableSensitiveDataLogging()
+               .LogTo(Console.WriteLine, LogLevel.Information);
+    });
 
-//authorization policies
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-});
+    builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddHostedService<SlotCreationService>();
 
-var app = builder.Build();
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
+        };
+    });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    //authorization policies
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    });
+
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    // Uygulama baþarýyla baþlatýldýðýnda loglama
+    Log.Information("Uygulama baþarýyla baþlatýldý.");
+
+    app.Run();
 }
-
-app.UseHttpsRedirection();
-app.UseAuthentication(); 
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    // Uygulama baþlatýlamadýysa hata loglama
+    Log.Fatal(ex, "Uygulama baþlatýlamadý!");
+}
+finally
+{
+    // Uygulama durduðunda loglama
+    Log.Information("Uygulama durduruluyor...");
+    Log.CloseAndFlush();
+}
